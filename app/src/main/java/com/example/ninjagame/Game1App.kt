@@ -1,5 +1,6 @@
 package com.example.ninjagame
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
@@ -33,9 +34,21 @@ fun Game1App(onLogout: () -> Unit) {
         GoogleSignIn.getClient(context, gso)
     }
 
+    // Xử lý nút Back hệ thống
+    BackHandler(enabled = currentScreen != "game") {
+        when (currentScreen) {
+            "store" -> currentScreen = "profile"
+            "profile", "leaderboard" -> currentScreen = "game"
+        }
+    }
+
     when (currentScreen) {
         "leaderboard" -> LeaderboardScreen(onBack = { currentScreen = "game" })
-        "profile" -> ProfileScreen(onBack = { currentScreen = "game" })
+        "profile" -> ProfileScreen(
+            onBack = { currentScreen = "game" },
+            onNavigateToStore = { currentScreen = "store" }
+        )
+        "store" -> StoreScreen(onBack = { currentScreen = "profile" })
         else -> {
             Box(
                 modifier = Modifier.fillMaxSize()

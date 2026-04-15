@@ -34,9 +34,9 @@ fun StoreScreen(onBack: () -> Unit) {
     // Giả sử bạn có các drawable này. Nếu chưa có hãy thay bằng R.drawable.kunai
     val storeItems = listOf(
         StoreItem("default_kunai", "Classic Kunai", 0, R.drawable.kunai),
-        StoreItem("shuriken", "Ninja Shuriken", 50, R.drawable.kunai), // Thay bằng shuriken nếu có
-        StoreItem("fire_kunai", "Fire Kunai", 150, R.drawable.kunai),
-        StoreItem("golden_blade", "Golden Blade", 500, R.drawable.kunai)
+        StoreItem("shuriken", "Ninja Shuriken", 5, R.drawable.lightning_spear), // Thay bằng shuriken nếu có
+        StoreItem("fire_kunai", "Fire Kunai", 15, R.drawable.dragon_fang_sword),
+        StoreItem("golden_blade", "Golden Blade", 17, R.drawable.demon)
     )
 
     LaunchedEffect(Unit) {

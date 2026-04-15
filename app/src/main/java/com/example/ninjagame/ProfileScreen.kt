@@ -3,19 +3,16 @@ package com.example.ninjagame
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ninjagame.data.FirestoreRepository
@@ -24,7 +21,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(onBack: () -> Unit) {
+fun ProfileScreen(onBack: () -> Unit, onNavigateToStore: () -> Unit) {
     val repository = remember { FirestoreRepository() }
     var profile by remember { mutableStateOf<UserProfile?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -44,14 +41,10 @@ fun ProfileScreen(onBack: () -> Unit) {
                 title = { Text("NINJA PROFILE", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Black,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                )
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black, titleContentColor = Color.White)
             )
         },
         containerColor = Color(0xFF121212)
@@ -71,87 +64,77 @@ fun ProfileScreen(onBack: () -> Unit) {
                 // Avatar Placeholder
                 Box(
                     modifier = Modifier
-                        .size(120.dp)
+                        .size(100.dp)
                         .clip(CircleShape)
                         .background(Color.Red.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Person, contentDescription = null, size = 60.dp, tint = Color.Red)
+                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(50.dp), tint = Color.Red)
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Name Section
                 if (isEditing) {
                     OutlinedTextField(
                         value = newName,
                         onValueChange = { newName = it },
-                        label = { Text("Ninja Name", color = Color.Gray) },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = Color.Red,
-                            unfocusedBorderColor = Color.Gray
-                        )
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = Color.Red)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                if (repository.updateDisplayName(newName)) {
-                                    profile = profile?.copy(displayName = newName)
-                                    isEditing = false
-                                }
+                    Button(onClick = {
+                        scope.launch {
+                            if (repository.updateDisplayName(newName)) {
+                                profile = profile?.copy(displayName = newName)
+                                isEditing = false
                             }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Save Name")
+                        }
+                    }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
+                        Text("Save")
                     }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = profile?.displayName ?: "Unknown Ninja",
-                            color = Color.White,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(profile?.displayName ?: "Ninja", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                         IconButton(onClick = { isEditing = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.Gray)
+                            Icon(Icons.Default.Edit, contentDescription = null, tint = Color.Gray)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // COINS & STATS
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Card(modifier = Modifier.weight(1f), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color.Yellow)
+                            Text("COINS", color = Color.Gray, fontSize = 12.sp)
+                            Text("${profile?.coins ?: 0}", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Card(modifier = Modifier.weight(1f), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Icon(Icons.Default.Timer, contentDescription = null, tint = Color.Cyan)
+                            Text("BEST TIME", color = Color.Gray, fontSize = 12.sp)
+                            Text("${(profile?.bestSurvivalTime ?: 0L) / 1000}s", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Stats Section
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
+                // STORE BUTTON
+                Button(
+                    onClick = onNavigateToStore,
+                    modifier = Modifier.fillMaxWidth().height(60.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("BEST SURVIVAL TIME", color = Color.Gray, fontSize = 12.sp)
-                        Text(
-                            text = "${(profile?.bestSurvivalTime ?: 0L) / 1000} SECONDS",
-                            color = Color.Red,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                    }
+                    Icon(Icons.Default.Store, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("OPEN NINJA STORE", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
             }
         }
     }
-}
-
-@Composable
-private fun Icon(icon: ImageVector, contentDescription: String?, size: Dp, tint: Color) {
-    Icon(
-        imageVector = icon,
-        contentDescription = contentDescription,
-        modifier = Modifier.size(size),
-        tint = tint
-    )
 }
