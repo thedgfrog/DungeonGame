@@ -60,7 +60,13 @@ fun Game1App(onLogout: () -> Unit) {
         }
 
         composable("profile") {
-            ProfileScreen(onBack = { navController.popBackStack() })
+            ProfileScreen(onBack = { navController.popBackStack() },
+                onNavigateToStore = { navController.navigate("store") }
+            )
+        }
+
+        composable("store") {
+            StoreScreen(onBack = { navController.popBackStack() })
         }
 
         composable("settings") {

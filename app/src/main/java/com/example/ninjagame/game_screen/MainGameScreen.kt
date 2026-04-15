@@ -1,5 +1,6 @@
 package com.example.ninjagame.game_screen
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Vibrator
 import android.content.Context
@@ -7,8 +8,9 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +32,7 @@ import com.example.ninjagame.data.FirestoreRepository
 import com.example.ninjagame.game.domain.Game
 import com.example.ninjagame.game.domain.GameStatus
 import com.example.ninjagame.game.domain.MoveDirection
+import com.example.ninjagame.game.domain.UserProfile
 import com.example.ninjagame.game.domain.target.EasyTarget
 import com.example.ninjagame.game.domain.target.MediumTarget
 import com.example.ninjagame.game.domain.target.StrongTarget
@@ -39,10 +42,9 @@ import com.example.ninjagame.util.SoundManager
 import com.example.ninjagame.util.detectMoveGesture
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.sqrt
 import kotlin.random.Random
 
-const val WEAPON_SPAWN_RATE = 400L
+const val WEAPON_SPAWN_RATE = 250L
 
 data class Explosion(val x: Float, val y: Float, val startTime: Long, val color: Color)
 
@@ -60,6 +62,9 @@ fun MainGameScreen() {
     val targetLives = remember { mutableStateMapOf<Target, Int>() }
     val explosions = remember { mutableStateListOf<Explosion>() }
 
+    var userProfile by remember { mutableStateOf<UserProfile?>(null) }
+    var coinsEarned by remember { mutableIntStateOf(0) }
+
     var moveDirection by remember { mutableStateOf(MoveDirection.None) }
     var lastDirection by remember { mutableStateOf(MoveDirection.Right) }
     var screenWidth by remember { mutableIntStateOf(0) }
@@ -69,29 +74,51 @@ fun MainGameScreen() {
     var startTime by remember { mutableLongStateOf(0L) }
     var elapsedTime by remember { mutableLongStateOf(0L) }
 
-    // Screen Shake Offset
     val shakeOffset = remember { Animatable(0f) }
 
     val ninjaScale = 0.3f
-    val ninjaSpeed = 25f
+    val ninjaSpeed = 45f
 
-    val backgroundBitmap = remember {
-        BitmapFactory.decodeResource(context.resources, R.drawable.background).asImageBitmap()
+    fun decodeSampledBitmapFromResource(resId: Int, reqWidth: Int, reqHeight: Int): ImageBitmap {
+        val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeResource(context.resources, resId, options)
+        var inSampleSize = 1
+        if (options.outHeight > reqHeight || options.outWidth > reqWidth) {
+            val halfHeight = options.outHeight / 2
+            val halfWidth = options.outWidth / 2
+            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+        options.inJustDecodeBounds = false
+        options.inSampleSize = inSampleSize
+        return BitmapFactory.decodeResource(context.resources, resId, options).asImageBitmap()
     }
-    val runningBitmap = remember {
-        BitmapFactory.decodeResource(context.resources, R.drawable.run_sprite).asImageBitmap()
-    }
-    val standingBitmap = remember {
-        BitmapFactory.decodeResource(context.resources, R.drawable.standing_ninja).asImageBitmap()
-    }
-    val weaponBitmap = remember {
-        BitmapFactory.decodeResource(context.resources, R.drawable.kunai).asImageBitmap()
+
+    val backgroundBitmap = remember { decodeSampledBitmapFromResource(R.drawable.background, 1080, 1920) }
+    val runningBitmap = remember { decodeSampledBitmapFromResource(R.drawable.run_sprite, 500, 500) }
+    val standingBitmap = remember { decodeSampledBitmapFromResource(R.drawable.standing_ninja, 300, 300) }
+
+    val weaponBitmap = remember(userProfile?.currentWeaponId) {
+        val resId = when (userProfile?.currentWeaponId) {
+            "shuriken" -> R.drawable.riu
+            "fire_kunai" -> R.drawable.sword
+            "golden_blade" -> R.drawable.sword1
+            else -> R.drawable.kunai
+        }
+        decodeSampledBitmapFromResource(resId, 200, 200)
     }
 
     LaunchedEffect(screenWidth) {
         if (screenWidth > 0 && ninjaX == -1f) {
-            val initialWidth = (standingBitmap.width * ninjaScale).toInt()
-            ninjaX = (screenWidth - initialWidth) / 2f
+            val ninjaWidth = (standingBitmap.width * ninjaScale)
+            ninjaX = (screenWidth - ninjaWidth) / 2f
+        }
+    }
+
+    LaunchedEffect(game.status) {
+        if (game.status == GameStatus.Idle || game.status == GameStatus.Started) {
+            userProfile = repository.getOrCreateProfile()
         }
     }
 
@@ -100,9 +127,9 @@ fun MainGameScreen() {
             if (screenWidth > 0 && screenHeight > 0) {
                 val x = Random.nextFloat() * (screenWidth - 120f) + 60f
                 val target: Target = when (Random.nextInt(10)) {
-                    in 0..5 -> EasyTarget(x, Animatable(-100f), 35f, Random.nextFloat() + 1f)
-                    in 6..8 -> MediumTarget(x, Animatable(-100f), 45f, Random.nextFloat() * 1.5f + 2f)
-                    else -> StrongTarget(x, Animatable(-100f), 55f, Random.nextFloat() + 0.5f)
+                    in 0..5 -> EasyTarget(x, Animatable(-100f), 45f, Random.nextFloat() * 2f + 2.5f)
+                    in 6..8 -> MediumTarget(x, Animatable(-100f), 55f, Random.nextFloat() * 3f + 4.5f)
+                    else -> StrongTarget(x, Animatable(-100f), 70f, Random.nextFloat() * 2f + 2f)
                 }
 
                 targets.add(target)
@@ -114,9 +141,9 @@ fun MainGameScreen() {
 
                 coroutineScope.launch {
                     target.y.animateTo(
-                        targetValue = screenHeight.toFloat() + 100f,
+                        targetValue = screenHeight.toFloat() + 150f,
                         animationSpec = tween(
-                            durationMillis = (18000f / target.fallingSpeed).toInt(),
+                            durationMillis = (12000f / target.fallingSpeed).toInt(),
                             easing = LinearEasing
                         )
                     )
@@ -124,7 +151,7 @@ fun MainGameScreen() {
                     targetLives.remove(target)
                 }
             }
-            delay(Random.nextLong(600L, 1500L))
+            delay(Random.nextLong(500L, 1200L))
         }
     }
 
@@ -141,8 +168,8 @@ fun MainGameScreen() {
                     Weapon(
                         x = ninjaX + frameWidth / 2f,
                         y = screenHeight - (bitmap.height * ninjaScale) - 20f,
-                        radius = 10f,
-                        shootingSpeed = 40f
+                        radius = 20f,
+                        shootingSpeed = 45f
                     )
                 )
             }
@@ -150,7 +177,7 @@ fun MainGameScreen() {
         }
     }
 
-    LaunchedEffect(game.status) @androidx.annotation.RequiresPermission(android.Manifest.permission.VIBRATE) {
+    LaunchedEffect(game.status) {
         while (game.status == GameStatus.Started) {
             val iterator = weapons.listIterator()
             while (iterator.hasNext()) {
@@ -158,15 +185,21 @@ fun MainGameScreen() {
                 weapon.y -= weapon.shootingSpeed
 
                 val hit = targets.firstOrNull {
-                    val dx = weapon.x - it.x
-                    val dy = weapon.y - it.y.value
-                    sqrt(dx * dx + dy * dy) < it.radius + weapon.radius
+                    val dx = kotlin.math.abs(weapon.x - it.x)
+                    val dy = kotlin.math.abs(weapon.y - it.y.value)
+                    dx < (it.radius + weapon.radius) * 0.9f && dy < (it.radius + weapon.radius) * 0.9f
                 }
 
                 if (hit != null) {
                     iterator.remove()
                     val lives = targetLives.getOrDefault(hit, 1)
                     if (lives <= 1) {
+                        coinsEarned += when(hit) {
+                            is EasyTarget -> Random.nextInt(1, 4)
+                            is MediumTarget -> Random.nextInt(4, 8)
+                            is StrongTarget -> Random.nextInt(8, 11)
+                            else -> 1
+                        }
                         explosions.add(Explosion(hit.x, hit.y.value, System.currentTimeMillis(), hit.color))
                         soundManager.playExplode()
                         targets.remove(hit)
@@ -187,7 +220,7 @@ fun MainGameScreen() {
                 game.status = GameStatus.Over
                 soundManager.playGameOver()
                 vibrator.vibrate(300)
-                
+
                 coroutineScope.launch {
                     repeat(5) {
                         shakeOffset.animateTo(20f, tween(50))
@@ -197,7 +230,7 @@ fun MainGameScreen() {
                 }
 
                 coroutineScope.launch {
-                    repository.saveGameSession(elapsedTime)
+                    repository.saveGameSession(elapsedTime, coinsEarned)
                 }
             }
 
@@ -207,21 +240,23 @@ fun MainGameScreen() {
 
     var currentFrame by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(game.status) {
-        while (game.status == GameStatus.Started) {
-            if (moveDirection != MoveDirection.None) {
+    // Logic di chuyển Ninja - Cho phép di chuyển cả khi Game Over
+    LaunchedEffect(game.status, moveDirection) {
+        while (game.status == GameStatus.Started || game.status == GameStatus.Over) {
+            if (moveDirection != MoveDirection.None && ninjaX != -1f) {
                 lastDirection = moveDirection
                 currentFrame = (currentFrame + 1) % 9
 
                 if (moveDirection == MoveDirection.Left) {
                     ninjaX = (ninjaX - ninjaSpeed).coerceAtLeast(0f)
                 } else {
-                    ninjaX = (ninjaX + ninjaSpeed).coerceAtMost(screenWidth - (runningBitmap.width / 3) * ninjaScale)
+                    val maxPosX = screenWidth - (runningBitmap.width / 3) * ninjaScale
+                    ninjaX = (ninjaX + ninjaSpeed).coerceAtMost(maxPosX)
                 }
             } else {
                 currentFrame = 0
             }
-            delay(80L)
+            delay(32L)
         }
     }
 
@@ -242,20 +277,23 @@ fun MainGameScreen() {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = "DUNGEON GAME", color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(30.dp))
-
-                    BouncyGameButton(text = "Start Game", isLarge = true) {
+                    BouncyGameButton(
+                        text = "Start Game",
+                        isLarge = true // Để true nếu muốn nút to rõ ràng cho màn hình khởi đầu
+                    ) {
                         startTime = System.currentTimeMillis()
+                        coinsEarned = 0
                         game.status = GameStatus.Started
                     }
                 }
             }
         }
 
-        if (game.status == GameStatus.Started) {
+        if (game.status == GameStatus.Started || game.status == GameStatus.Over) {
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
-                    .pointerInput(Unit) {
+                    .pointerInput(game.status) { // FIX: Sử dụng game.status làm key để restart gesture handler khi chơi lại
                         awaitPointerEventScope {
                             detectMoveGesture(
                                 gameStatusProvider = { game.status },
@@ -273,7 +311,7 @@ fun MainGameScreen() {
                 }
 
                 weapons.forEach {
-                    drawImage(image = weaponBitmap, dstOffset = IntOffset(it.x.toInt(), it.y.toInt()), dstSize = IntSize(80, 80))
+                    drawImage(image = weaponBitmap, dstOffset = IntOffset(it.x.toInt() - 40, it.y.toInt() - 40), dstSize = IntSize(80, 80))
                 }
 
                 explosions.forEach { explosion ->
@@ -288,7 +326,8 @@ fun MainGameScreen() {
                 val isMoving = moveDirection != MoveDirection.None
                 val currentFacing = if (isMoving) moveDirection else lastDirection
                 val shouldFlip = currentFacing == MoveDirection.Left
-                val currentNinjaX = if (ninjaX == -1f) (size.width - standingBitmap.width * ninjaScale) / 2f else ninjaX
+
+                val currentNinjaX = if (ninjaX == -1f) (size.width - (standingBitmap.width * ninjaScale)) / 2f else ninjaX
 
                 if (isMoving) {
                     val cols = 3
@@ -325,30 +364,43 @@ fun MainGameScreen() {
                     }
                 }
             }
+
+            Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.TopStart) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color.Yellow)
+                    Text(" $coinsEarned", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                }
+            }
         }
 
         if (game.status == GameStatus.Over) {
             Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.75f)),
+                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = "GAME OVER", color = Color.Red, fontSize = 48.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "Time: ${elapsedTime / 1000}s", color = Color.White, fontSize = 24.sp)
+                    Text(text = "Survival Time: ${elapsedTime / 1000}s", color = Color.White, fontSize = 24.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Coins Earned: ", color = Color.White, fontSize = 24.sp)
+                        Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color.Yellow, modifier = Modifier.size(24.dp))
+                        Text(text = " $coinsEarned", color = Color.Yellow, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                    }
                     Spacer(modifier = Modifier.height(30.dp))
-
-                    BouncyGameButton(text = "Play Again", isLarge = true) {
+                    Button(onClick = {
                         weapons.clear()
                         targets.clear()
                         targetLives.clear()
                         explosions.clear()
-                        ninjaX = -1f
-                        currentFrame = 0
                         moveDirection = MoveDirection.None
                         lastDirection = MoveDirection.Right
                         startTime = System.currentTimeMillis()
+                        coinsEarned = 0
                         game.status = GameStatus.Started
+                    }) {
+                        Text("Play Again")
                     }
                 }
             }

@@ -1,5 +1,6 @@
 package com.example.ninjagame.game_screen
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -18,18 +19,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ninjagame.data.FirestoreRepository
 import com.example.ninjagame.game.domain.UserProfile
+import com.example.ninjagame.Game1App
 import kotlinx.coroutines.launch
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Store
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
+import java.io.File
+import java.io.FileOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(onBack: () -> Unit) {
+fun ProfileScreen(onBack: () -> Unit,
+                  onNavigateToStore: () -> Unit) {
     val repository = remember { FirestoreRepository() }
     var profile by remember { mutableStateOf<UserProfile?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -43,9 +50,14 @@ fun ProfileScreen(onBack: () -> Unit) {
     ) { uri: Uri? ->
         uri?.let {
             scope.launch {
-                val uriString = it.toString()
-                if (repository.updateAvatarUrl(uriString)) {
-                    profile = profile?.copy(avatarUrl = uriString)
+                //Copy ảnh vào bộ nhớ trong của App
+                val internalPath = saveImageToInternalStorage(context, it)
+
+                if (internalPath != null) {
+                    //Lưu đường dẫn file nội bộ (internalPath) thay vì URI tạm thời
+                    if (repository.updateAvatarUrl(internalPath)) {
+                        profile = profile?.copy(avatarUrl = internalPath)
+                    }
                 }
             }
         }
@@ -184,7 +196,50 @@ fun ProfileScreen(onBack: () -> Unit) {
                         )
                     }
                 }
+
+                Button(
+                    onClick = { onNavigateToStore() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Store, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("OPEN NINJA STORE", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                }
             }
         }
+    }
+}
+
+//lưu ảnh cục bộ lưu trên chính máy của người dùng
+fun saveImageToInternalStorage(context: Context, uri: Uri): String? {
+    return try {
+        val inputStream = context.contentResolver.openInputStream(uri)
+
+        // Trước khi lưu file mới, hãy xóa các file avatar cũ nếu có
+        val directory = context.filesDir
+        directory.listFiles()?.forEach { file ->
+            if (file.name.startsWith("avatar_")) {
+                file.delete()
+            }
+        }
+        // Tạo tên file duy nhất dựa trên thời gian để không bị trùng
+        val fileName = "avatar_${System.currentTimeMillis()}.jpg"
+        val file = File(context.filesDir, fileName)
+
+        val outputStream = FileOutputStream(file)
+        inputStream?.use { input ->
+            outputStream.use { output ->
+                input.copyTo(output)
+            }
+        }
+        // Trả về đường dẫn tuyệt đối của file trong máy
+        file.absolutePath
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
     }
 }
