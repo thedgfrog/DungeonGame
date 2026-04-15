@@ -236,17 +236,16 @@ fun MainGameScreen() {
     ) {
         if (game.status == GameStatus.Idle) {
             Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = "DUNGEON GAME", color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(30.dp))
-                    Button(onClick = {
+
+                    BouncyGameButton(text = "Start Game", isLarge = true) {
                         startTime = System.currentTimeMillis()
                         game.status = GameStatus.Started
-                    }) {
-                        Text("Start Game")
                     }
                 }
             }
@@ -338,7 +337,8 @@ fun MainGameScreen() {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(text = "Time: ${elapsedTime / 1000}s", color = Color.White, fontSize = 24.sp)
                     Spacer(modifier = Modifier.height(30.dp))
-                    Button(onClick = {
+
+                    BouncyGameButton(text = "Play Again", isLarge = true) {
                         weapons.clear()
                         targets.clear()
                         targetLives.clear()
@@ -349,8 +349,6 @@ fun MainGameScreen() {
                         lastDirection = MoveDirection.Right
                         startTime = System.currentTimeMillis()
                         game.status = GameStatus.Started
-                    }) {
-                        Text("Play Again")
                     }
                 }
             }

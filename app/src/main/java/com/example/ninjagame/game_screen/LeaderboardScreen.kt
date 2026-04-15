@@ -1,4 +1,4 @@
-package com.example.ninjagame
+package com.example.ninjagame.game_screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

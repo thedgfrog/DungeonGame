@@ -1,6 +1,5 @@
-package com.example.ninjagame
+package com.example.ninjagame.Auth
 
-import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*

@@ -65,6 +65,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.firebase.firestore)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.core.splashscreen)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -88,4 +90,6 @@ dependencies {
     implementation("androidx.compose.animation:animation")
 
     implementation("androidx.compose.material:material-icons-extended")
+
+    implementation("io.coil-kt:coil-compose:2.6.0")
 }

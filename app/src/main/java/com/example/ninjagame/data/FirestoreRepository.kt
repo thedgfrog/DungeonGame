@@ -98,4 +98,17 @@ class FirestoreRepository {
             emptyList()
         }
     }
+
+    suspend fun updateAvatarUrl(newUri: String): Boolean {
+        val userId = auth.currentUser?.uid ?: return false
+        return try {
+            firestore.collection("profiles")
+                .document(userId)
+                .update("avatarUrl", newUri)
+                .await()
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
 }

@@ -1,4 +1,4 @@
-package com.example.ninjagame
+package com.example.ninjagame.game_screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,14 +13,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ninjagame.data.FirestoreRepository
 import com.example.ninjagame.game.domain.UserProfile
 import kotlinx.coroutines.launch
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +36,20 @@ fun ProfileScreen(onBack: () -> Unit) {
     var newName by remember { mutableStateOf("") }
     var isEditing by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            scope.launch {
+                val uriString = it.toString()
+                if (repository.updateAvatarUrl(uriString)) {
+                    profile = profile?.copy(avatarUrl = uriString)
+                }
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         profile = repository.getOrCreateProfile()
@@ -68,20 +87,45 @@ fun ProfileScreen(onBack: () -> Unit) {
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Avatar Placeholder
+                // Avatar
                 Box(
                     modifier = Modifier
                         .size(120.dp)
                         .clip(CircleShape)
-                        .background(Color.Red.copy(alpha = 0.2f)),
+                        .background(Color.Red.copy(alpha = 0.2f))
+                        .clickable { photoPickerLauncher.launch("image/*") }, // Nhấn để đổi ảnh
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Person, contentDescription = null, size = 60.dp, tint = Color.Red)
+                    if (!profile?.avatarUrl.isNullOrEmpty()) {
+                        AsyncImage(
+                            model = profile?.avatarUrl,
+                            contentDescription = "Avatar",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        // Hiện icon mặc định nếu chưa có ảnh
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(60.dp),
+                            tint = Color.Red
+                        )
+                    }
+
+                    // Thêm một lớp phủ nhỏ báo hiệu có thể chỉnh sửa
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.BottomCenter
+                    ) {
+                        Text("EDIT", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Name Section
                 if (isEditing) {
                     OutlinedTextField(
                         value = newName,
@@ -126,7 +170,6 @@ fun ProfileScreen(onBack: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Stats Section
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f))
@@ -144,14 +187,4 @@ fun ProfileScreen(onBack: () -> Unit) {
             }
         }
     }
-}
-
-@Composable
-private fun Icon(icon: ImageVector, contentDescription: String?, size: Dp, tint: Color) {
-    Icon(
-        imageVector = icon,
-        contentDescription = contentDescription,
-        modifier = Modifier.size(size),
-        tint = tint
-    )
 }

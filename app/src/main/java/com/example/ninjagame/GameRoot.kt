@@ -1,43 +1,69 @@
 package com.example.ninjagame
 
 import androidx.compose.runtime.*
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.ninjagame.Auth.ForgotPasswordScreen
+import com.example.ninjagame.Auth.LoginScreen
+import com.example.ninjagame.Auth.RegisterScreen
 import com.google.firebase.auth.FirebaseAuth
+import com.example.ninjagame.game_screen.SplashScreen
 
 @Composable
 fun GameRoot() {
-
     val auth = FirebaseAuth.getInstance()
+    val navController = rememberNavController()
 
-    var isLoggedIn by remember { mutableStateOf(auth.currentUser != null) }
-    var screen by remember { mutableStateOf("login") }
+    NavHost(
+        navController = navController,
+        startDestination = "splash"
+    ) {
+        composable("splash") {
+            SplashScreen(
+                onStartGame = {
+                    val destination = if (auth.currentUser != null) "game_module" else "login"
 
-    if (isLoggedIn) {
-
-        Game1App(
-            onLogout = {
-                auth.signOut()
-                isLoggedIn = false
-                screen = "login"
-            }
-        )
-
-    } else {
-
-        when (screen) {
-
-            "login" -> LoginScreen(
-                onLoginSuccess = { isLoggedIn = true },
-                onNavigateRegister = { screen = "register" },
-                onNavigateForgot = { screen = "forgot" }
+                    navController.navigate(destination) {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
             )
+        }
 
-            "register" -> RegisterScreen(
-                onRegisterSuccess = { screen = "login" },
-                onBackToLogin = { screen = "login" }
+        composable("login") {
+            LoginScreen(
+                onLoginSuccess = {
+                    navController.navigate("game_module") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                },
+                onNavigateRegister = { navController.navigate("register") },
+                onNavigateForgot = { navController.navigate("forgot") }
             )
+        }
 
-            "forgot" -> ForgotPasswordScreen(
-                onBackToLogin = { screen = "login" }
+        composable("register") {
+            RegisterScreen(
+                onRegisterSuccess = { navController.popBackStack() },
+                onBackToLogin = { navController.popBackStack() }
+            )
+        }
+
+        composable("forgot") {
+            ForgotPasswordScreen(
+                onBackToLogin = { navController.popBackStack() }
+            )
+        }
+
+        composable("game_module") {
+            Game1App(
+                onLogout = {
+                    auth.signOut()
+                    navController.navigate("login") {
+                        popUpTo("game_module") { inclusive = true }
+                    }
+                }
             )
         }
     }

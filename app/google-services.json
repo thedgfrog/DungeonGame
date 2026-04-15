@@ -1,33 +1,13 @@
 {
   "project_info": {
-    "project_number": "931829611151",
-    "firebase_url": "https://crud-real-time-a985d-default-rtdb.firebaseio.com",
-    "project_id": "crud-real-time-a985d",
-    "storage_bucket": "crud-real-time-a985d.firebasestorage.app"
+    "project_number": "923722204626",
+    "project_id": "finalterm-ae236",
+    "storage_bucket": "finalterm-ae236.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:931829611151:android:a73256bb7b92d5890c8efa",
-        "android_client_info": {
-          "package_name": "com.example.bookapp"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBwdldiBY9lhEU37bgtbboIM81ZkDkhsnk"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:931829611151:android:6be443ebbee5d46c0c8efa",
+        "mobilesdk_app_id": "1:923722204626:android:5f52d75541376ba944b40b",
         "android_client_info": {
           "package_name": "com.example.ninjagame"
         }
@@ -35,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBwdldiBY9lhEU37bgtbboIM81ZkDkhsnk"
+          "current_key": "AIzaSyCeQNs8b5L7l4VoDj1-obz0stBo_GsHPq4"
         }
       ],
       "services": {

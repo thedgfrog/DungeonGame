@@ -5,7 +5,8 @@ import com.google.firebase.Timestamp
 data class UserProfile(
     val userId: String = "",
     val displayName: String = "",
-    val bestSurvivalTime: Long = 0L
+    val bestSurvivalTime: Long = 0L,
+    val avatarUrl: String = ""
 )
 
 data class GameSession(
