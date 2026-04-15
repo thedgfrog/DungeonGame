@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "714915977702",
+    "project_id": "dungeongame-f26b2",
+    "storage_bucket": "dungeongame-f26b2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:714915977702:android:e9ff2ab7f2318a22a31e27",
+        "android_client_info": {
+          "package_name": "com.example.ninjagame"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDVqTugE342l4vxU0p7ju7j6a_EDbY990o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
