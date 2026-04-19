@@ -1,13 +1,14 @@
 package com.example.ninjagame
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ninjagame.data.FirestoreRepository
+import com.example.ninjagame.game.domain.Difficulty
 import com.example.ninjagame.game.domain.UserProfile
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -24,6 +26,7 @@ fun LeaderboardScreen(onBack: () -> Unit) {
     val repository = remember { FirestoreRepository() }
     var leaders by remember { mutableStateOf<List<UserProfile>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var selectedDifficulty by remember { mutableStateOf<Difficulty?>(null) }
 
     LaunchedEffect(Unit) {
         leaders = repository.getLeaderboard()
@@ -48,20 +51,76 @@ fun LeaderboardScreen(onBack: () -> Unit) {
         },
         containerColor = Color(0xFF121212)
     ) { padding ->
-        if (isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color.Red)
-            }
-        } else {
-            LazyColumn(
+        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+            // Buttons chọn độ khó
+            Row(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(16.dp)
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                itemsIndexed(leaders) { index, profile ->
-                    LeaderItem(index + 1, profile)
-                    Spacer(modifier = Modifier.height(8.dp))
+                // All button
+                Button(
+                    onClick = { selectedDifficulty = null },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedDifficulty == null) Color.Green else Color.Gray
+                    )
+                ) {
+                    Text("All")
+                }
+
+                // Buttons cho từng độ khó
+                Difficulty.values().forEach { diff ->
+                    Button(
+                        onClick = { selectedDifficulty = diff },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (selectedDifficulty == diff) Color.Green else Color.Gray
+                        )
+                    ) {
+                        Text(diff.displayName)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Color.Red)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    // Lọc leaderboard theo độ khó
+                    val displayList = if (selectedDifficulty == null) {
+                        // All: chỉ lấy profile có ít nhất 1 thời gian > 0
+                        leaders.filter { profile ->
+                            profile.bestTimes?.values?.any { it > 0L } == true
+                        }.sortedByDescending { profile ->
+                            profile.bestTimes?.values?.maxOrNull() ?: 0L
+                        }
+
+                    } else {
+                        leaders.filter { profile ->
+                            (profile.bestTimes?.get(selectedDifficulty!!.displayName) ?: 0L) > 0L
+                        }.sortedByDescending { profile ->
+                            profile.bestTimes?.get(selectedDifficulty!!.displayName) ?: 0L
+                        }
+                    }
+
+                    itemsIndexed(displayList) { index, profile ->
+                        LeaderItem(
+                            rank = index + 1,
+                            profile = profile,
+                            showDifficultyTimes = selectedDifficulty == null,
+                            difficulty = selectedDifficulty ?: Difficulty.EASY
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
             }
         }
@@ -69,11 +128,16 @@ fun LeaderboardScreen(onBack: () -> Unit) {
 }
 
 @Composable
-fun LeaderItem(rank: Int, profile: UserProfile) {
+fun LeaderItem(
+    rank: Int,
+    profile: UserProfile,
+    difficulty: Difficulty = Difficulty.EASY,
+    showDifficultyTimes: Boolean = false // true nếu đang All
+) {
     val bgColor = when (rank) {
-        1 -> Color(0xFFFFD700).copy(alpha = 0.2f) // Gold
-        2 -> Color(0xFFC0C0C0).copy(alpha = 0.2f) // Silver
-        3 -> Color(0xFFCD7F32).copy(alpha = 0.2f) // Bronze
+        1 -> Color(0xFFFFD700).copy(alpha = 0.2f)
+        2 -> Color(0xFFC0C0C0).copy(alpha = 0.2f)
+        3 -> Color(0xFFCD7F32).copy(alpha = 0.2f)
         else -> Color.White.copy(alpha = 0.05f)
     }
 
@@ -98,7 +162,7 @@ fun LeaderItem(rank: Int, profile: UserProfile) {
             fontWeight = FontWeight.ExtraBold,
             modifier = Modifier.width(50.dp)
         )
-        
+
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = profile.displayName,
@@ -106,13 +170,31 @@ fun LeaderItem(rank: Int, profile: UserProfile) {
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
+
+            if (showDifficultyTimes) {
+                Difficulty.values().forEach { diff ->
+                    val time = profile.bestTimes?.get(diff.displayName) ?: 0L
+                    if (time > 0L) {
+                        Text(
+                            text = "${diff.displayName}: ${time / 1000}s",
+                            color = Color.Gray,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
         }
 
-        Text(
-            text = "${profile.bestSurvivalTime / 1000}s",
-            color = Color.Red,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
+        if (!showDifficultyTimes) {
+            val bestTime = profile.bestTimes?.get(difficulty.displayName) ?: 0L
+            if (bestTime > 0L) {
+                Text(
+                    text = "${bestTime / 1000}s",
+                    color = Color.Red,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }

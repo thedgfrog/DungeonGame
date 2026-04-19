@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ninjagame.data.FirestoreRepository
+import com.example.ninjagame.game.domain.Difficulty
 import com.example.ninjagame.game.domain.UserProfile
 import kotlinx.coroutines.launch
 
@@ -41,10 +42,17 @@ fun ProfileScreen(onBack: () -> Unit, onNavigateToStore: () -> Unit) {
                 title = { Text("NINJA PROFILE", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black, titleContentColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Black,
+                    titleContentColor = Color.White
+                )
             )
         },
         containerColor = Color(0xFF121212)
@@ -69,7 +77,12 @@ fun ProfileScreen(onBack: () -> Unit, onNavigateToStore: () -> Unit) {
                         .background(Color.Red.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(50.dp), tint = Color.Red)
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = null,
+                        modifier = Modifier.size(50.dp),
+                        tint = Color.Red
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -80,7 +93,11 @@ fun ProfileScreen(onBack: () -> Unit, onNavigateToStore: () -> Unit) {
                         value = newName,
                         onValueChange = { newName = it },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = Color.Red)
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color.Red
+                        )
                     )
                     Button(onClick = {
                         scope.launch {
@@ -94,7 +111,12 @@ fun ProfileScreen(onBack: () -> Unit, onNavigateToStore: () -> Unit) {
                     }
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(profile?.displayName ?: "Ninja", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            profile?.displayName ?: "Ninja",
+                            color = Color.White,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                         IconButton(onClick = { isEditing = true }) {
                             Icon(Icons.Default.Edit, contentDescription = null, tint = Color.Gray)
                         }
@@ -103,36 +125,104 @@ fun ProfileScreen(onBack: () -> Unit, onNavigateToStore: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // COINS & STATS
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Card(modifier = Modifier.weight(1f), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color.Yellow)
-                            Text("COINS", color = Color.Gray, fontSize = 12.sp)
-                            Text("${profile?.coins ?: 0}", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                    Card(modifier = Modifier.weight(1f), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Icon(Icons.Default.Timer, contentDescription = null, tint = Color.Cyan)
-                            Text("BEST TIME", color = Color.Gray, fontSize = 12.sp)
-                            Text("${(profile?.bestSurvivalTime ?: 0L) / 1000}s", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
+                val bestTimes: Map<String, Long> =
+                    profile?.bestTimes as? Map<String, Long> ?: emptyMap()
 
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // STORE BUTTON
-                Button(
-                    onClick = onNavigateToStore,
-                    modifier = Modifier.fillMaxWidth().height(60.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
-                    shape = RoundedCornerShape(12.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Icon(Icons.Default.Store, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("OPEN NINJA STORE", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    // COINS
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                Icons.Default.MonetizationOn,
+                                contentDescription = null,
+                                tint = Color.Yellow
+                            )
+                            Text("COINS", color = Color.Gray, fontSize = 12.sp)
+                            Text(
+                                "${profile?.coins ?: 0}",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // EASY
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.Timer, contentDescription = null, tint = Color.Green)
+                            Text("EASY", color = Color.Gray, fontSize = 12.sp)
+                            val easyTime = bestTimes.getOrDefault(Difficulty.EASY.displayName, 0L) / 1000
+                            Text(
+                                "${easyTime}s",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // MEDIUM
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                Icons.Default.Timer,
+                                contentDescription = null,
+                                tint = Color.Yellow
+                            )
+                            Text("MED", color = Color.Gray, fontSize = 12.sp)
+                            val mediumTime = bestTimes.getOrDefault(Difficulty.MEDIUM.displayName, 0L) / 1000
+                            Text(
+                                "${mediumTime}s",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    // HARD
+                    Card(
+                        modifier = Modifier.weight(1f),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.Timer, contentDescription = null, tint = Color.Red)
+                            Text("HARD", color = Color.Gray, fontSize = 12.sp)
+                            val hardTime = bestTimes.getOrDefault(Difficulty.HARD.displayName, 0L) / 1000
+                            Text(
+                                "${hardTime}s",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         }
