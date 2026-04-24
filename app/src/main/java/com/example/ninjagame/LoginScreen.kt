@@ -3,17 +3,23 @@ package com.example.ninjagame
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
@@ -25,7 +31,6 @@ fun LoginScreen(
     onNavigateRegister: () -> Unit,
     onNavigateForgot: () -> Unit
 ) {
-
     val context = LocalContext.current
     val auth = FirebaseAuth.getInstance()
 
@@ -45,111 +50,146 @@ fun LoginScreen(
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-
         val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-
         try {
             val account = task.result
             val idToken = account.idToken
-
             val credential = GoogleAuthProvider.getCredential(idToken, null)
-
-            auth.signInWithCredential(credential)
-                .addOnCompleteListener { task2 ->
-                    if (task2.isSuccessful) {
-                        onLoginSuccess()
-                    } else {
-                        msg = task2.exception?.message ?: "Google login failed"
-                    }
-                }
-
+            auth.signInWithCredential(credential).addOnCompleteListener { task2 ->
+                if (task2.isSuccessful) onLoginSuccess()
+                else msg = task2.exception?.message ?: "Google login failed"
+            }
         } catch (e: Exception) {
             msg = e.message ?: "Google sign in error"
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color(0xFF0F0F0F)
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 32.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "NINJA GAME",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Light,
+                color = Color.White,
+                letterSpacing = 4.sp
+            )
+            
+            Text(
+                "AUTHENTICATION",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Gray,
+                letterSpacing = 2.sp
+            )
 
-        Text("LOGIN", style = MaterialTheme.typography.headlineMedium)
+            Spacer(Modifier.height(48.dp))
 
-        Spacer(Modifier.height(20.dp))
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("EMAIL", fontSize = 12.sp) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.1f),
+                    focusedLabelColor = Color.White,
+                    unfocusedLabelColor = Color.Gray
+                )
+            )
 
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
-        )
+            Spacer(Modifier.height(16.dp))
 
-        Spacer(Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, contentDescription = if (passwordVisible) "Hide password" else "Show password")
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Button(
-            onClick = {
-                if (email.isBlank() || password.isBlank()) {
-                    msg = "Fill all fields"
-                    return@Button
-                }
-
-                auth.signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener {
-                        if (it.isSuccessful) {
-                            onLoginSuccess()
-                        } else {
-                            msg = it.exception?.message ?: "Login failed"
-                        }
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("PASSWORD", fontSize = 12.sp) },
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(imageVector = image, contentDescription = null, tint = Color.Gray)
                     }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Login")
-        }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.1f),
+                    focusedLabelColor = Color.White,
+                    unfocusedLabelColor = Color.Gray
+                )
+            )
 
-        Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(24.dp))
 
-        Button(
-            onClick = {
-                val signInIntent = googleSignInClient.signInIntent
-                launcher.launch(signInIntent)
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Sign in with Google")
-        }
+            Button(
+                onClick = {
+                    if (email.isBlank() || password.isBlank()) {
+                        msg = "Fill all fields"
+                        return@Button
+                    }
+                    auth.signInWithEmailAndPassword(email, password)
+                        .addOnCompleteListener {
+                            if (it.isSuccessful) onLoginSuccess()
+                            else msg = it.exception?.message ?: "Login failed"
+                        }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
+            ) {
+                Text("LOGIN", fontWeight = FontWeight.Bold)
+            }
 
-        Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(16.dp))
 
-        TextButton(onClick = onNavigateForgot) {
-            Text("Forgot password?")
-        }
+            OutlinedButton(
+                onClick = {
+                    val signInIntent = googleSignInClient.signInIntent
+                    launcher.launch(signInIntent)
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+            ) {
+                Text("SIGN IN WITH GOOGLE", fontSize = 12.sp)
+            }
 
-        TextButton(onClick = onNavigateRegister) {
-            Text("Don't have an account? Register")
-        }
+            Spacer(Modifier.height(24.dp))
 
-        if (msg.isNotEmpty()) {
-            Spacer(Modifier.height(10.dp))
-            Text(msg, color = MaterialTheme.colorScheme.error)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                TextButton(onClick = onNavigateForgot) {
+                    Text("FORGOT PASSWORD?", color = Color.Gray, fontSize = 11.sp)
+                }
+                TextButton(onClick = onNavigateRegister) {
+                    Text("CREATE ACCOUNT", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            if (msg.isNotEmpty()) {
+                Spacer(Modifier.height(16.dp))
+                Text(msg, color = Color.Red, fontSize = 12.sp)
+            }
         }
     }
 }

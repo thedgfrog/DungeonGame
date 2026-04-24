@@ -6,13 +6,23 @@ import com.example.ninjagame.game.domain.UserProfile
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.tasks.await
 
 class FirestoreRepository {
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+
+    // Hàm hỗ trợ đọc Long an toàn
+    private fun getSafeLong(data: Any?): Long {
+        return when (data) {
+            is Long -> data
+            is Int -> data.toLong()
+            is Double -> data.toLong()
+            is String -> data.toLongOrNull() ?: 0L
+            else -> 0L
+        }
+    }
 
     suspend fun saveGameSession(survivalTime: Long, coinsEarned: Int, difficulty: Difficulty) {
         val userId = auth.currentUser?.uid ?: return
@@ -23,7 +33,7 @@ class FirestoreRepository {
             userId = userId,
             survivalTime = survivalTime,
             coinsEarned = coinsEarned,
-            difficulty = difficulty.name // lưu dưới dạng String
+            difficulty = difficulty.name
         )
 
         try {
@@ -47,20 +57,24 @@ class FirestoreRepository {
             Difficulty.HARD -> "bestHardTime"
         }
 
-        firestore.runTransaction { transaction ->
-            val snapshot = transaction.get(profileRef)
-            val currentBest = snapshot.getLong(bestField) ?: 0L
+        try {
+            firestore.runTransaction { transaction ->
+                val snapshot = transaction.get(profileRef)
+                val currentBest = getSafeLong(snapshot.get(bestField))
 
-            val updates = mutableMapOf<String, Any>(
-                "coins" to FieldValue.increment(coins.toLong())
-            )
+                val updates = mutableMapOf<String, Any>(
+                    "coins" to FieldValue.increment(coins.toLong())
+                )
 
-            if (currentTime > currentBest) {
-                updates[bestField] = currentTime
-            }
+                if (currentTime > currentBest) {
+                    updates[bestField] = currentTime
+                }
 
-            transaction.set(profileRef, updates, SetOptions.merge())
-        }.await()
+                transaction.set(profileRef, updates, SetOptions.merge())
+            }.await()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
     
     suspend fun buyItem(itemId: String, price: Int): Boolean {
@@ -70,8 +84,8 @@ class FirestoreRepository {
         return try {
             firestore.runTransaction { transaction ->
                 val snapshot = transaction.get(profileRef)
-                val currentCoins = snapshot.getLong("coins") ?: 0L
-                val unlocked = snapshot.get("unlockedWeapons") as? List<String> ?: listOf("default_kunai")
+                val currentCoins = getSafeLong(snapshot.get("coins"))
+                val unlocked = snapshot.get("unlockedWeapons") as? List<*> ?: listOf("default_kunai")
 
                 if (currentCoins >= price && !unlocked.contains(itemId)) {
                     transaction.update(profileRef, "coins", currentCoins - price)
@@ -106,40 +120,33 @@ class FirestoreRepository {
         return try {
             val snapshot = profileRef.get().await()
             if (snapshot.exists()) {
-                // Nếu profile đã tồn tại, map dữ liệu cũ sang UserProfile mới
                 val bestTimes = mapOf(
-                    "Easy" to (snapshot.getLong("bestEasyTime") ?: 0L),
-                    "Medium" to (snapshot.getLong("bestMediumTime") ?: 0L),
-                    "Hard" to (snapshot.getLong("bestHardTime") ?: 0L)
+                    "Easy" to getSafeLong(snapshot.get("bestEasyTime")),
+                    "Medium" to getSafeLong(snapshot.get("bestMediumTime")),
+                    "Hard" to getSafeLong(snapshot.get("bestHardTime"))
                 )
                 UserProfile(
                     userId = snapshot.id,
                     displayName = snapshot.getString("displayName") ?: "Unknown",
-                    coins = snapshot.getLong("coins") ?: 0L,
-                    unlockedWeapons = snapshot.get("unlockedWeapons") as? List<String> ?: listOf("default_kunai"),
+                    coins = getSafeLong(snapshot.get("coins")),
+                    unlockedWeapons = (snapshot.get("unlockedWeapons") as? List<*>)?.mapNotNull { it.toString() } ?: listOf("default_kunai"),
                     currentWeaponId = snapshot.getString("currentWeaponId") ?: "default_kunai",
                     bestTimes = bestTimes
                 )
             } else {
-                // Nếu chưa có profile, tạo mới
                 val newProfile = UserProfile(
                     userId = user.uid,
                     displayName = user.displayName ?: user.email?.split("@")?.get(0) ?: "Ninja",
                     coins = 0L,
                     unlockedWeapons = listOf("default_kunai"),
                     currentWeaponId = "default_kunai",
-                    bestTimes = mapOf(
-                        "Easy" to 0L,
-                        "Medium" to 0L,
-                        "Hard" to 0L
-                    )
+                    bestTimes = mapOf("Easy" to 0L, "Medium" to 0L, "Hard" to 0L)
                 )
-                // Lưu các giá trị mặc định vào Firestore
                 val data = mapOf(
                     "displayName" to newProfile.displayName,
-                    "coins" to newProfile.coins,
-                    "unlockedWeapons" to newProfile.unlockedWeapons,
-                    "currentWeaponId" to newProfile.currentWeaponId,
+                    "coins" to 0L,
+                    "unlockedWeapons" to listOf("default_kunai"),
+                    "currentWeaponId" to "default_kunai",
                     "bestEasyTime" to 0L,
                     "bestMediumTime" to 0L,
                     "bestHardTime" to 0L
@@ -168,21 +175,18 @@ class FirestoreRepository {
 
     suspend fun getLeaderboard(): List<UserProfile> {
         return try {
-            val snapshot = firestore.collection("profiles")
-                .get()
-                .await()
-
+            val snapshot = firestore.collection("profiles").get().await()
             snapshot.documents.map { doc ->
                 val bestTimes = mapOf(
-                    "Easy" to (doc.getLong("bestEasyTime") ?: 0L),
-                    "Medium" to (doc.getLong("bestMediumTime") ?: 0L),
-                    "Hard" to (doc.getLong("bestHardTime") ?: 0L)
+                    "Easy" to getSafeLong(doc.get("bestEasyTime")),
+                    "Medium" to getSafeLong(doc.get("bestMediumTime")),
+                    "Hard" to getSafeLong(doc.get("bestHardTime"))
                 )
                 UserProfile(
                     userId = doc.id,
                     displayName = doc.getString("displayName") ?: "Unknown",
-                    coins = doc.getLong("coins") ?: 0L,
-                    unlockedWeapons = doc.get("unlockedWeapons") as? List<String> ?: listOf("default_kunai"),
+                    coins = getSafeLong(doc.get("coins")),
+                    unlockedWeapons = (doc.get("unlockedWeapons") as? List<*>)?.mapNotNull { it.toString() } ?: listOf("default_kunai"),
                     currentWeaponId = doc.getString("currentWeaponId") ?: "default_kunai",
                     bestTimes = bestTimes
                 )

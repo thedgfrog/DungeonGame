@@ -39,53 +39,56 @@ fun ProfileScreen(onBack: () -> Unit, onNavigateToStore: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("NINJA PROFILE", fontWeight = FontWeight.Bold) },
+                title = { Text("PROFILE", fontWeight = FontWeight.Light, letterSpacing = 2.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onNavigateToStore) {
+                        Icon(Icons.Default.ShoppingCart, contentDescription = "Store", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Black,
+                    containerColor = Color.Transparent,
                     titleContentColor = Color.White
                 )
             )
         },
-        containerColor = Color(0xFF121212)
+        containerColor = Color(0xFF0F0F0F)
     ) { padding ->
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color.Red)
+                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
             }
         } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
-                    .padding(24.dp),
+                    .padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Spacer(modifier = Modifier.height(32.dp))
+
                 // Avatar Placeholder
                 Box(
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(120.dp)
                         .clip(CircleShape)
-                        .background(Color.Red.copy(alpha = 0.2f)),
+                        .background(Color.White.copy(alpha = 0.05f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.Person,
                         contentDescription = null,
-                        modifier = Modifier.size(50.dp),
-                        tint = Color.Red
+                        modifier = Modifier.size(60.dp),
+                        tint = Color.White.copy(alpha = 0.7f)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Name Section
                 if (isEditing) {
@@ -93,138 +96,132 @@ fun ProfileScreen(onBack: () -> Unit, onNavigateToStore: () -> Unit) {
                         value = newName,
                         onValueChange = { newName = it },
                         modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
-                            focusedBorderColor = Color.Red
-                        )
-                    )
-                    Button(onClick = {
-                        scope.launch {
-                            if (repository.updateDisplayName(newName)) {
-                                profile = profile?.copy(displayName = newName)
-                                isEditing = false
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.Gray
+                        ),
+                        trailingIcon = {
+                            IconButton(onClick = {
+                                scope.launch {
+                                    if (repository.updateDisplayName(newName)) {
+                                        profile = profile?.copy(displayName = newName)
+                                        isEditing = false
+                                    }
+                                }
+                            }) {
+                                Icon(Icons.Default.Check, contentDescription = "Save", tint = Color.Green)
                             }
                         }
-                    }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red)) {
-                        Text("Save")
-                    }
+                    )
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            profile?.displayName ?: "Ninja",
+                            profile?.displayName ?: "Guest Ninja",
                             color = Color.White,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Light
                         )
                         IconButton(onClick = { isEditing = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = null, tint = Color.Gray)
+                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color.White.copy(alpha = 0.3f), modifier = Modifier.size(18.dp))
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(48.dp))
 
-                val bestTimes: Map<String, Long> =
-                    profile?.bestTimes as? Map<String, Long> ?: emptyMap()
+                // Stats Section
+                StatCard(
+                    label = "COINS",
+                    value = "${profile?.coins ?: 0}",
+                    icon = Icons.Default.MonetizationOn,
+                    iconColor = Color(0xFFFFD700)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val bestTimes: Map<String, Long> = profile?.bestTimes as? Map<String, Long> ?: emptyMap()
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // COINS
-                    Card(
+                    TimeStat(
+                        label = "EASY",
+                        time = bestTimes.getOrDefault(Difficulty.EASY.displayName, 0L),
                         modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                Icons.Default.MonetizationOn,
-                                contentDescription = null,
-                                tint = Color.Yellow
-                            )
-                            Text("COINS", color = Color.Gray, fontSize = 12.sp)
-                            Text(
-                                "${profile?.coins ?: 0}",
-                                color = Color.White,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    // EASY
-                    Card(
+                        color = Color(0xFF81C784)
+                    )
+                    TimeStat(
+                        label = "MED",
+                        time = bestTimes.getOrDefault(Difficulty.MEDIUM.displayName, 0L),
                         modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(Icons.Default.Timer, contentDescription = null, tint = Color.Green)
-                            Text("EASY", color = Color.Gray, fontSize = 12.sp)
-                            val easyTime = bestTimes.getOrDefault(Difficulty.EASY.displayName, 0L) / 1000
-                            Text(
-                                "${easyTime}s",
-                                color = Color.White,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    // MEDIUM
-                    Card(
+                        color = Color(0xFFFFD54F)
+                    )
+                    TimeStat(
+                        label = "HARD",
+                        time = bestTimes.getOrDefault(Difficulty.HARD.displayName, 0L),
                         modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                Icons.Default.Timer,
-                                contentDescription = null,
-                                tint = Color.Yellow
-                            )
-                            Text("MED", color = Color.Gray, fontSize = 12.sp)
-                            val mediumTime = bestTimes.getOrDefault(Difficulty.MEDIUM.displayName, 0L) / 1000
-                            Text(
-                                "${mediumTime}s",
-                                color = Color.White,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-
-                    // HARD
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(Icons.Default.Timer, contentDescription = null, tint = Color.Red)
-                            Text("HARD", color = Color.Gray, fontSize = 12.sp)
-                            val hardTime = bestTimes.getOrDefault(Difficulty.HARD.displayName, 0L) / 1000
-                            Text(
-                                "${hardTime}s",
-                                color = Color.White,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+                        color = Color(0xFFE57373)
+                    )
                 }
+                
+                Spacer(modifier = Modifier.weight(1f))
+                
+                // Store Shortcut at the bottom
+                Button(
+                    onClick = onNavigateToStore,
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f))
+                ) {
+                    Icon(Icons.Default.Storefront, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("VISIT STORE", fontWeight = FontWeight.SemiBold)
+                }
+                Spacer(modifier = Modifier.height(32.dp))
             }
+        }
+    }
+}
+
+@Composable
+fun StatCard(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, iconColor: Color) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = Color.White.copy(alpha = 0.05f),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(24.dp))
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(label, color = Color.White.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(value, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+fun TimeStat(label: String, time: Long, color: Color, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        color = Color.White.copy(alpha = 0.05f),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(label, color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("${time / 1000}s", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }

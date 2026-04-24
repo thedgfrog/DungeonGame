@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.jetbrains.compose)
     alias(libs.plugins.google.gms.google.services)
 }
 
@@ -37,13 +36,6 @@ android {
     }
 }
 
-compose {
-    resources {
-        packageOfResClass = "com.example.ninjagame"
-        generateResClass = auto
-    }
-}
-
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -53,16 +45,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.sprite.kmp)
     
-    // Thêm dependencies cho Compose Multiplatform Resources
-    implementation(compose.runtime)
-    implementation(compose.foundation)
-    implementation(compose.material3)
-    implementation(compose.ui)
-    implementation(compose.components.resources)
-    implementation(compose.components.uiToolingPreview)
-    implementation(libs.androidx.material3)
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.firebase.firestore)
 
@@ -75,17 +58,17 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(platform("com.google.firebase:firebase-bom:34.12.0"))
 
-    // Add the dependency for the Firebase Authentication library
-    // When using the BoM, you don't specify versions in Firebase library dependencies
+    // Firebase
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
 
-    // Also add the dependencies for the Credential Manager libraries and specify their versions
+    // Credentials
     implementation("androidx.credentials:credentials:1.6.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.6.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.2.0")
     implementation("com.google.android.gms:play-services-auth:21.5.1")
+    
+    // Animation & Icons
     implementation("androidx.compose.animation:animation")
-
     implementation("androidx.compose.material:material-icons-extended")
 }

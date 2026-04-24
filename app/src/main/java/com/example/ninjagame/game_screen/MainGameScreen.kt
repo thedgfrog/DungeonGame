@@ -9,8 +9,10 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MonetizationOn
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -107,13 +109,8 @@ fun MainGameScreen() {
         val rows = 3
         val frameWidth = fullBitmap.width / cols
         val frameHeight = fullBitmap.height / rows
-
-        // bitmap mới: 1 hàng, 9 frame
         val newBitmap = Bitmap.createBitmap(frameWidth * cols * rows, frameHeight, Bitmap.Config.ARGB_8888)
-
         val canvas = android.graphics.Canvas(newBitmap)
-
-        // copy từng frame từ gốc vào bitmap mới
         for (row in 0 until rows) {
             for (col in 0 until cols) {
                 val srcX = col * frameWidth
@@ -240,7 +237,6 @@ fun MainGameScreen() {
                 }
                 coroutineScope.launch { repository.saveGameSession(elapsedTime, coinsEarned, selectedDifficulty) }
             }
-
             delay(16L)
         }
     }
@@ -264,31 +260,75 @@ fun MainGameScreen() {
             .offset { IntOffset(shakeOffset.value.toInt(), 0) }
     ) {
         if (game.status == GameStatus.Idle) {
-            Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black),
-                contentAlignment = Alignment.Center
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = Color(0xFF0F0F0F)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "DUNGEON GAME", color = Color.White, fontSize = 40.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(30.dp))
-                    Row {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(32.dp)
+                ) {
+                    Text(
+                        text = "DUNGEON",
+                        color = Color.White,
+                        fontSize = 56.sp,
+                        fontWeight = FontWeight.Light,
+                        letterSpacing = 8.sp
+                    )
+                    Text(
+                        text = "SURVIVAL",
+                        color = Color.Gray,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 4.sp
+                    )
+                    
+                    Spacer(modifier = Modifier.height(64.dp))
+                    
+                    Text("SELECT DIFFICULTY", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Difficulty.values().forEach { difficulty ->
-                            Button(
+                            Surface(
                                 onClick = { selectedDifficulty = difficulty },
-                                colors = if (selectedDifficulty == difficulty)
-                                    ButtonDefaults.buttonColors(containerColor = Color.Green)
-                                else
-                                    ButtonDefaults.buttonColors(containerColor = Color.Gray),
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            ) { Text(difficulty.displayName) }
+                                modifier = Modifier.weight(1f).height(48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (selectedDifficulty == difficulty) Color.White.copy(alpha = 0.1f) else Color.Transparent,
+                                border = if (selectedDifficulty == difficulty) null else androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        difficulty.displayName.uppercase(),
+                                        color = if (selectedDifficulty == difficulty) Color.White else Color.Gray,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
                         }
                     }
-                    Spacer(modifier = Modifier.height(30.dp))
-                    Button(onClick = {
-                        startTime = System.currentTimeMillis()
-                        coinsEarned = 0
-                        game.status = GameStatus.Started
-                    }) { Text("Start Game") }
+                    
+                    Spacer(modifier = Modifier.height(48.dp))
+                    
+                    Button(
+                        onClick = {
+                            startTime = System.currentTimeMillis()
+                            coinsEarned = 0
+                            game.status = GameStatus.Started
+                        },
+                        modifier = Modifier.fillMaxWidth().height(64.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("START GAME", fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                    }
                 }
             }
         }
@@ -309,15 +349,12 @@ fun MainGameScreen() {
                     }
             ) {
                 drawImage(backgroundBitmap, dstSize = IntSize(size.width.toInt(), size.height.toInt()))
-
                 targets.forEach {
                     drawCircle(color = it.color, radius = it.radius, center = Offset(it.x, it.y.value))
                 }
-
                 weapons.forEach {
                     drawImage(weaponBitmap, dstOffset = IntOffset(it.x.toInt() - 40, it.y.toInt() - 40), dstSize = IntSize(80, 80))
                 }
-
                 explosions.forEach { explosion ->
                     val progress = (System.currentTimeMillis() - explosion.startTime) / 300f
                     drawCircle(
@@ -326,22 +363,18 @@ fun MainGameScreen() {
                         center = Offset(explosion.x, explosion.y)
                     )
                 }
-
                 val isMoving = moveDirection != MoveDirection.None
                 val currentFacing = if (isMoving) moveDirection else lastDirection
                 val shouldFlip = currentFacing == MoveDirection.Left
                 val currentNinjaX = if (ninjaX == -1f) (size.width - (standingBitmap.width * ninjaScale)) / 2f else ninjaX
-
                 val bitmap = if (isMoving) runningBitmap else standingBitmap
                 val cols = if (isMoving) 9 else 1
                 val frameWidth = bitmap.width / cols
                 val frameHeight = bitmap.height
-
                 val dW = (frameWidth * ninjaScale).toInt()
                 val dH = (frameHeight * ninjaScale).toInt()
                 val dX = currentNinjaX.toInt()
                 val dY = (size.height - dH - 20f).toInt()
-
                 if (shouldFlip) {
                     scale(scaleX = -1f, scaleY = 1f, pivot = Offset(dX + dW / 2f, dY + dH / 2f)) {
                         drawImage(
@@ -363,43 +396,85 @@ fun MainGameScreen() {
                 }
             }
 
+            // Game HUD
             Box(modifier = Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.TopStart) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color.Yellow)
-                    Text(" $coinsEarned", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Surface(
+                    color = Color.Black.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("$coinsEarned", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
 
         if (game.status == GameStatus.Over) {
             Box(
-                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)),
+                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.9f)),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "GAME OVER", color = Color.Red, fontSize = 48.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "Survival Time: ${elapsedTime / 1000}s", color = Color.White, fontSize = 24.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "Coins Earned: ", color = Color.White, fontSize = 24.sp)
-                        Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Color.Yellow, modifier = Modifier.size(24.dp))
-                        Text(text = " $coinsEarned", color = Color.Yellow, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(32.dp)
+                ) {
+                    Text(
+                        text = "DEFEATED",
+                        color = Color.White,
+                        fontSize = 48.sp,
+                        fontWeight = FontWeight.Light,
+                        letterSpacing = 4.sp
+                    )
+                    Spacer(modifier = Modifier.height(32.dp))
+                    
+                    StatRow("SURVIVAL TIME", "${elapsedTime / 1000}s")
+                    Spacer(modifier = Modifier.height(12.dp))
+                    StatRow("COINS COLLECTED", "$coinsEarned")
+                    
+                    Spacer(modifier = Modifier.height(64.dp))
+                    
+                    Button(
+                        onClick = {
+                            weapons.clear()
+                            targets.clear()
+                            targetLives.clear()
+                            explosions.clear()
+                            moveDirection = MoveDirection.None
+                            lastDirection = MoveDirection.Right
+                            startTime = System.currentTimeMillis()
+                            coinsEarned = 0
+                            game.status = GameStatus.Started
+                        },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
+                    ) {
+                        Text("TRY AGAIN", fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                     }
-                    Spacer(modifier = Modifier.height(30.dp))
-                    Button(onClick = {
-                        weapons.clear()
-                        targets.clear()
-                        targetLives.clear()
-                        explosions.clear()
-                        moveDirection = MoveDirection.None
-                        lastDirection = MoveDirection.Right
-                        startTime = System.currentTimeMillis()
-                        coinsEarned = 0
-                        game.status = GameStatus.Started
-                    }) { Text("Play Again") }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    TextButton(onClick = { game.status = GameStatus.Idle }) {
+                        Text("BACK TO MENU", color = Color.Gray, fontSize = 12.sp)
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun StatRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        Text(value, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
     }
 }

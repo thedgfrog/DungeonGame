@@ -1,14 +1,13 @@
 package com.example.ninjagame
 
-import android.util.Log
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,74 +35,58 @@ fun LeaderboardScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("LEADERBOARD", fontWeight = FontWeight.Bold) },
+                title = { Text("LEADERBOARD", fontWeight = FontWeight.Light, letterSpacing = 2.sp) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Black,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+                    containerColor = Color.Transparent,
+                    titleContentColor = Color.White
                 )
             )
         },
-        containerColor = Color(0xFF121212)
+        containerColor = Color(0xFF0F0F0F)
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            // Buttons chọn độ khó
+            // Difficulty Selection Tabs
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // All button
-                Button(
+                DifficultyTab(
+                    text = "ALL",
+                    isSelected = selectedDifficulty == null,
                     onClick = { selectedDifficulty = null },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (selectedDifficulty == null) Color.Green else Color.Gray
-                    )
-                ) {
-                    Text("All")
-                }
-
-                // Buttons cho từng độ khó
+                    modifier = Modifier.weight(1f)
+                )
                 Difficulty.values().forEach { diff ->
-                    Button(
+                    DifficultyTab(
+                        text = diff.displayName.uppercase(),
+                        isSelected = selectedDifficulty == diff,
                         onClick = { selectedDifficulty = diff },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selectedDifficulty == diff) Color.Green else Color.Gray
-                        )
-                    ) {
-                        Text(diff.displayName)
-                    }
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color.Red)
+                    CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                ) {
-                    // Lọc leaderboard theo độ khó
-                    val displayList = if (selectedDifficulty == null) {
-                        // All: chỉ lấy profile có ít nhất 1 thời gian > 0
+                val displayList = remember(leaders, selectedDifficulty) {
+                    if (selectedDifficulty == null) {
                         leaders.filter { profile ->
                             profile.bestTimes?.values?.any { it > 0L } == true
                         }.sortedByDescending { profile ->
                             profile.bestTimes?.values?.maxOrNull() ?: 0L
                         }
-
                     } else {
                         leaders.filter { profile ->
                             (profile.bestTimes?.get(selectedDifficulty!!.displayName) ?: 0L) > 0L
@@ -111,15 +94,25 @@ fun LeaderboardScreen(onBack: () -> Unit) {
                             profile.bestTimes?.get(selectedDifficulty!!.displayName) ?: 0L
                         }
                     }
+                }
 
-                    itemsIndexed(displayList) { index, profile ->
-                        LeaderItem(
-                            rank = index + 1,
-                            profile = profile,
-                            showDifficultyTimes = selectedDifficulty == null,
-                            difficulty = selectedDifficulty ?: Difficulty.EASY
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
+                if (displayList.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No records found", color = Color.Gray, fontSize = 14.sp)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        itemsIndexed(displayList) { index, profile ->
+                            LeaderItem(
+                                rank = index + 1,
+                                profile = profile,
+                                currentDifficulty = selectedDifficulty
+                            )
+                        }
                     }
                 }
             }
@@ -128,72 +121,93 @@ fun LeaderboardScreen(onBack: () -> Unit) {
 }
 
 @Composable
+fun DifficultyTab(text: String, isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.height(40.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = if (isSelected) Color.White.copy(alpha = 0.1f) else Color.Transparent,
+        border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = text,
+                color = if (isSelected) Color.White else Color.Gray,
+                fontSize = 11.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                letterSpacing = 1.sp
+            )
+        }
+    }
+}
+
+@Composable
 fun LeaderItem(
     rank: Int,
     profile: UserProfile,
-    difficulty: Difficulty = Difficulty.EASY,
-    showDifficultyTimes: Boolean = false // true nếu đang All
+    currentDifficulty: Difficulty?
 ) {
-    val bgColor = when (rank) {
-        1 -> Color(0xFFFFD700).copy(alpha = 0.2f)
-        2 -> Color(0xFFC0C0C0).copy(alpha = 0.2f)
-        3 -> Color(0xFFCD7F32).copy(alpha = 0.2f)
-        else -> Color.White.copy(alpha = 0.05f)
-    }
-
     val rankColor = when (rank) {
         1 -> Color(0xFFFFD700)
         2 -> Color(0xFFC0C0C0)
         3 -> Color(0xFFCD7F32)
-        else -> Color.Gray
+        else -> Color.White.copy(alpha = 0.2f)
     }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(bgColor, RoundedCornerShape(12.dp))
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Surface(
+        color = Color.White.copy(alpha = 0.03f),
+        shape = RoundedCornerShape(16.dp),
+        border = if (rank <= 3) androidx.compose.foundation.BorderStroke(1.dp, rankColor.copy(alpha = 0.1f)) else null
     ) {
-        Text(
-            text = "#$rank",
-            color = rankColor,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.width(50.dp)
-        )
-
-        Column(modifier = Modifier.weight(1f)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                text = profile.displayName,
-                color = Color.White,
+                text = "$rank",
+                color = rankColor,
                 fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Light,
+                modifier = Modifier.width(40.dp)
             )
 
-            if (showDifficultyTimes) {
-                Difficulty.values().forEach { diff ->
-                    val time = profile.bestTimes?.get(diff.displayName) ?: 0L
-                    if (time > 0L) {
-                        Text(
-                            text = "${diff.displayName}: ${time / 1000}s",
-                            color = Color.Gray,
-                            fontSize = 12.sp
-                        )
-                    }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = profile.displayName.ifBlank { "Anonymous" }.uppercase(),
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.sp
+                )
+                
+                if (currentDifficulty == null) {
+                    val maxTime = profile.bestTimes?.values?.maxOrNull() ?: 0L
+                    Text(
+                        text = "BEST: ${maxTime / 1000}s",
+                        color = Color.Gray,
+                        fontSize = 11.sp
+                    )
                 }
             }
-        }
 
-        if (!showDifficultyTimes) {
-            val bestTime = profile.bestTimes?.get(difficulty.displayName) ?: 0L
-            if (bestTime > 0L) {
-                Text(
-                    text = "${bestTime / 1000}s",
-                    color = Color.Red,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            val displayTime = if (currentDifficulty != null) {
+                profile.bestTimes?.get(currentDifficulty.displayName) ?: 0L
+            } else {
+                profile.bestTimes?.values?.maxOrNull() ?: 0L
+            }
+
+            Text(
+                text = "${displayTime / 1000}s",
+                color = Color.White,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Light
+            )
+            
+            if (rank <= 3) {
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.Default.EmojiEvents, contentDescription = null, tint = rankColor, modifier = Modifier.size(16.dp))
             }
         }
     }
