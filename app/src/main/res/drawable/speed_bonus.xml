@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+
+    <!-- Bong bóng bảo vệ -->
+    <path
+        android:fillColor="#33F2FF00"
+        android:pathData="M32,0
+                          A32,32 0 1,1 32,64
+                          A32,32 0 1,1 32,0
+                          Z" />
+
+    <!-- Sấm chớp -->
+    <path
+        android:fillColor="#FF9500"1
+        android:pathData="M32,4 L20,36 L30,36 L30,60 L48,28 L38,28 L38,4 Z"/>
+</vector>
