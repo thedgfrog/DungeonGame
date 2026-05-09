@@ -1,5 +1,6 @@
-package com.example.ninjagame
+package com.example.ninjagame.game_screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -127,7 +128,7 @@ fun DifficultyTab(text: String, isSelected: Boolean, onClick: () -> Unit, modifi
         modifier = modifier.height(40.dp),
         shape = RoundedCornerShape(20.dp),
         color = if (isSelected) Color.White.copy(alpha = 0.1f) else Color.Transparent,
-        border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
+        border = if (isSelected) null else BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
@@ -157,7 +158,7 @@ fun LeaderItem(
     Surface(
         color = Color.White.copy(alpha = 0.03f),
         shape = RoundedCornerShape(16.dp),
-        border = if (rank <= 3) androidx.compose.foundation.BorderStroke(1.dp, rankColor.copy(alpha = 0.1f)) else null
+        border = if (rank <= 3) BorderStroke(1.dp, rankColor.copy(alpha = 0.1f)) else null
     ) {
         Row(
             modifier = Modifier

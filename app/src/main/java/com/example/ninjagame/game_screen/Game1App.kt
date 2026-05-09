@@ -1,20 +1,26 @@
-package com.example.ninjagame
+package com.example.ninjagame.game_screen
 
-import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.ninjagame.game_screen.MainGameScreen
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.ninjagame.game_screen.GameRoute
+import com.example.ninjagame.util.SoundManager
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
@@ -22,7 +28,9 @@ import com.google.firebase.auth.FirebaseAuth
 @Composable
 fun Game1App(onLogout: () -> Unit) {
     val context = LocalContext.current
-    var currentScreen by remember { mutableStateOf("game") }
+    val navController = rememberNavController()
+
+    val soundManager = remember { SoundManager(context) }
 
     val googleSignInClient = remember {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -32,29 +40,20 @@ fun Game1App(onLogout: () -> Unit) {
         GoogleSignIn.getClient(context, gso)
     }
 
-    BackHandler(enabled = currentScreen != "game") {
-        when (currentScreen) {
-            "store" -> currentScreen = "profile"
-            "profile", "leaderboard" -> currentScreen = "game"
-        }
-    }
-
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = Color(0xFF0F0F0F)
     ) {
-        when (currentScreen) {
-            "leaderboard" -> LeaderboardScreen(onBack = { currentScreen = "game" })
-            "profile" -> ProfileScreen(
-                onBack = { currentScreen = "game" },
-                onNavigateToStore = { currentScreen = "store" }
-            )
-            "store" -> StoreScreen(onBack = { currentScreen = "profile" })
-            else -> {
+        NavHost(
+            navController = navController,
+            startDestination = GameRoute.GAME
+        ) {
+            // --- Màn hình Game chính ---
+            composable(GameRoute.GAME) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    MainGameScreen()
+                    MainGameScreen(soundManager)
 
-                    // Minimalistic HUD Overlays
+                    // HUD Overlays
                     Column(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -63,18 +62,24 @@ fun Game1App(onLogout: () -> Unit) {
                         horizontalAlignment = Alignment.End
                     ) {
                         HUDButton(
+                            icon = Icons.Default.Settings,
+                            onClick = { navController.navigate(GameRoute.SETTING) }
+                        )
+
+                        HUDButton(
                             icon = Icons.Default.Person,
-                            onClick = { currentScreen = "profile" }
+                            onClick = { navController.navigate(GameRoute.PROFILE) }
                         )
                         HUDButton(
                             icon = Icons.Default.EmojiEvents,
-                            onClick = { currentScreen = "leaderboard" }
+                            onClick = { navController.navigate(GameRoute.LEADERBOARD) }
                         )
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         IconButton(
                             onClick = {
+                                soundManager.releaseAll()
                                 googleSignInClient.revokeAccess().addOnCompleteListener {
                                     FirebaseAuth.getInstance().signOut()
                                     onLogout()
@@ -87,13 +92,36 @@ fun Game1App(onLogout: () -> Unit) {
                     }
                 }
             }
+
+            // --- Màn hình Bảng xếp hạng ---
+            composable(GameRoute.LEADERBOARD) {
+                LeaderboardScreen(onBack = { navController.popBackStack() })
+            }
+
+            // --- Màn hình Cá nhân ---
+            composable(GameRoute.PROFILE) {
+                ProfileScreen(
+                    onBack = { navController.popBackStack() },
+                    onNavigateToStore = { navController.navigate(GameRoute.STORE) }
+                )
+            }
+
+            // --- Màn hình Cửa hàng ---
+            composable(GameRoute.STORE) {
+                StoreScreen(onBack = { navController.popBackStack() })
+            }
+
+            // --- Màn hình setting ---
+            composable(GameRoute.SETTING) {
+                SettingScreen(soundManager, onBack = { navController.popBackStack() })
+            }
         }
     }
 }
 
 @Composable
 fun HUDButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     onClick: () -> Unit
 ) {
     Surface(
@@ -101,7 +129,7 @@ fun HUDButton(
         shape = CircleShape,
         color = Color.Black.copy(alpha = 0.5f),
         modifier = Modifier.size(48.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(

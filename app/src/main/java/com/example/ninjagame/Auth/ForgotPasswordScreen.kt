@@ -1,4 +1,4 @@
-package com.example.ninjagame
+package com.example.ninjagame.Auth
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape

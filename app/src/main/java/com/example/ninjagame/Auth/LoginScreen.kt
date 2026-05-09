@@ -1,9 +1,8 @@
-package com.example.ninjagame
+package com.example.ninjagame.Auth
 
-import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -166,7 +165,7 @@ fun LoginScreen(
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
             ) {
                 Text("SIGN IN WITH GOOGLE", fontSize = 12.sp)

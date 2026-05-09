@@ -1,4 +1,4 @@
-package com.example.ninjagame
+package com.example.ninjagame.game_screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -188,7 +189,7 @@ fun ProfileScreen(onBack: () -> Unit, onNavigateToStore: () -> Unit) {
 }
 
 @Composable
-fun StatCard(label: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, iconColor: Color) {
+fun StatCard(label: String, value: String, icon: ImageVector, iconColor: Color) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = Color.White.copy(alpha = 0.05f),

@@ -1,5 +1,6 @@
-package com.example.ninjagame
+package com.example.ninjagame.game_screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,6 +21,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ninjagame.R
 import com.example.ninjagame.data.FirestoreRepository
 import com.example.ninjagame.game.domain.StoreItem
 import com.example.ninjagame.game.domain.UserProfile
@@ -142,7 +144,7 @@ fun StoreItemCard(
     Surface(
         color = Color.White.copy(alpha = 0.05f),
         shape = RoundedCornerShape(24.dp),
-        border = if (isUsing) androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)) else null
+        border = if (isUsing) BorderStroke(1.dp, Color.White.copy(alpha = 0.3f)) else null
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -195,7 +197,7 @@ fun StoreItemCard(
                     onClick = onUnuse,
                     modifier = buttonModifier,
                     shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
                     contentPadding = PaddingValues(0.dp)
                 ) {
                     Text("REMOVE", fontSize = 10.sp, color = Color.White)

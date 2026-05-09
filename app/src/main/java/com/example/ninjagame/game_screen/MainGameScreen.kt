@@ -57,7 +57,7 @@ var WEAPON_SPAWN_RATE = 250L
 data class Explosion(val x: Float, val y: Float, val startTime: Long, val color: Color)
 
 @Composable
-fun MainGameScreen() {
+fun MainGameScreen(soundManager: SoundManager) {
     val context = LocalContext.current
     val bonuses = remember { mutableStateListOf<Bonus>() }
     fun vectorToBitmap(resId: Int, width: Int, height: Int, context: Context): ImageBitmap {
@@ -73,7 +73,6 @@ fun MainGameScreen() {
     val game = remember { Game(status = GameStatus.Idle) }
     val coroutineScope = rememberCoroutineScope()
     val repository = remember { FirestoreRepository() }
-    val soundManager = remember { SoundManager(context) }
     val vibrator = remember { context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator }
 
     val weapons = remember { mutableStateListOf<Weapon>() }
@@ -146,6 +145,26 @@ fun MainGameScreen() {
             else -> R.drawable.kunai
         }
         decodeSampledBitmapFromResource(resId, 200, 200)
+    }
+
+    LaunchedEffect(game.status) {
+        when (game.status) {
+            GameStatus.Idle -> {
+                soundManager.startMenuMusic()
+            }
+            GameStatus.Started -> {
+                soundManager.stopMenuMusic()
+                soundManager.startGameMusic()
+            }
+            GameStatus.Over -> {
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            soundManager.stopGameMusic()
+        }
     }
 
     LaunchedEffect(screenWidth) {
