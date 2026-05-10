@@ -10,11 +10,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ninjagame.data.FirestoreRepository
+import com.example.ninjagame.game.domain.UserSettings
 import com.example.ninjagame.util.SoundManager
+import kotlinx.coroutines.launch
 
 
 @Composable
 fun SettingScreen(soundManager: SoundManager, onBack: () -> Unit) {
+    val repository = remember { FirestoreRepository() }
+    val scope = rememberCoroutineScope()
+    
     var musicVolume by remember { mutableFloatStateOf(soundManager.getMusicVolume()) }
     var sfxVolume by remember { mutableFloatStateOf(soundManager.getSFXVolume()) }
 
@@ -72,7 +78,17 @@ fun SettingScreen(soundManager: SoundManager, onBack: () -> Unit) {
             Spacer(modifier = Modifier.height(48.dp))
 
             Button(
-                onClick = onBack,
+                onClick = {
+                    scope.launch {
+                        repository.updateSettings(
+                            UserSettings(
+                                musicVolume = musicVolume,
+                                sfxVolume = sfxVolume
+                            )
+                        )
+                        onBack()
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)

@@ -15,10 +15,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.ninjagame.data.FirestoreRepository
 import com.example.ninjagame.game_screen.GameRoute
 import com.example.ninjagame.util.SoundManager
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -29,15 +34,49 @@ import com.google.firebase.auth.FirebaseAuth
 fun Game1App(onLogout: () -> Unit) {
     val context = LocalContext.current
     val navController = rememberNavController()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val repository = remember { FirestoreRepository() }
 
     val soundManager = remember { SoundManager(context) }
 
     val googleSignInClient = remember {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("984213734238-p9dpe3np4uhgn4icr1k4jlbo83eeguc4.apps.googleusercontent.com")
+            // Đã đồng bộ Token chuẩn từ google-services.json
+            .requestIdToken("714915977702-8j80vglknpifvtddsmlcljhc278d3aqm.apps.googleusercontent.com")
             .requestEmail()
             .build()
         GoogleSignIn.getClient(context, gso)
+    }
+
+    // Load settings from Cloud on start
+    LaunchedEffect(Unit) {
+        val profile = repository.getOrCreateProfile()
+        profile?.settings?.let {
+            soundManager.setMusicVolume(it.musicVolume)
+            soundManager.setSFXVolume(it.sfxVolume)
+        }
+    }
+
+    // Handle lifecycle for music
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    soundManager.pauseAll()
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    soundManager.resumeAll(isIngame = currentRoute == GameRoute.GAME)
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     Surface(
@@ -80,6 +119,7 @@ fun Game1App(onLogout: () -> Unit) {
                         IconButton(
                             onClick = {
                                 soundManager.releaseAll()
+                                // Giờ đây lệnh revokeAccess sẽ chạy đúng nhờ Token đã đồng bộ
                                 googleSignInClient.revokeAccess().addOnCompleteListener {
                                     FirebaseAuth.getInstance().signOut()
                                     onLogout()
